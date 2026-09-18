@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Search Australian plants and compare flowering months and flower colour on the Bloom Atlas wheel. Click to plant name to review more information.">
+<title>Bloom Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,500;1,8..60,600&family=Lora:ital,wght@1,500;1,600&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    color-scheme: light;
+    --paper:        #f1f1ea;
+    --surface:      #fbfbf7;
+    --surface-2:    #f5f4ee;
+    --ink:          #1c1f1a;
+    --ink-2:        #52564d;
+    --ink-muted:    #83867c;
+    --line:         #dedcd1;
+    --line-strong:  #c3c1b3;
+    --season-line:  #565a4d;
+    --accent:       #2c4a6e;
+    --shadow:       rgba(28,31,26,0.08);
+    --ring-empty:   #e4e2d6;
+
+    --c-black:         #1a1a1a;
+    --c-blue_purple:   #3f6fae;
+    --c-green:         #7a9a6a;
+    --c-grey:          #b7bcac;
+    --c-pink:          #dd8fa8;
+    --c-red_brown:     #c23b3b;
+    --c-white_cream:   #efe9d8;
+    --c-yellow_orange: #e8b923;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --paper:        #14160f;
+      --surface:      #1b1d16;
+      --surface-2:    #21231b;
+      --ink:          #f0efe6;
+      --ink-2:        #c1c2b3;
+      --ink-muted:    #83867c;
+      --line:         #2c2e24;
+      --line-strong:  #3c3f32;
+      --season-line:  #b7bba9;
+      --accent:       #7fa6d1;
+      --shadow:       rgba(0,0,0,0.35);
+      --ring-empty:   #2a2c22;
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --paper:        #14160f;
+    --surface:      #1b1d16;
+    --surface-2:    #21231b;
+    --ink:          #f0efe6;
+    --ink-2:        #c1c2b3;
+    --ink-muted:    #83867c;
+    --line:         #2c2e24;
+    --line-strong:  #3c3f32;
+    --season-line:  #b7bba9;
+    --accent:       #7fa6d1;
+    --shadow:       rgba(0,0,0,0.35);
+    --ring-empty:   #2a2c22;
+  }
+
+  *{ box-sizing: border-box; }
+  [hidden]{ display: none !important; }
+  body{
+    margin:0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .wrap{
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 8px 24px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  header{ display:flex; flex-direction: column; width: 100%; }
+  .title-block h1{
+    font-family: "Source Serif 4", Georgia, serif;
+    font-weight: 600;
+    font-size: 21px;
+    letter-spacing: -0.01em;
+    margin: 0 0 2px;
+  }
+  .title-block p{ margin: 0; color: var(--ink-2); font-size: 12.5px; line-height: 1.3; }
+  .title-block .stats{ margin-bottom: 1px; }
+  .title-block .stats strong{ font-weight: 600; color: var(--ink); }
+
+  .app-mode-switcher{
+    display: flex; width: 100%;
+    border-bottom: 1px solid var(--line);
+    gap: 4px;
+  }
+  .app-mode-switcher button{
+    flex: 1;
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    color: var(--ink-muted); background: none; border: none; cursor: pointer;
+    padding: 4px 12px; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  }
+  .app-mode-switcher button:focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; }
+  .app-mode-switcher button[aria-pressed="true"]{ color: var(--ink); border-bottom-color: var(--accent); }
+
+  .card{
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: 0 1px 2px var(--shadow);
+    padding: 8px 20px;
+  }
+
+  .star-mark{ color: var(--accent); font-size: 11px; }
+
+  /* ---- wheel stage (shared by search + paint) ---- */
+  .wheel-card{ display:flex; flex-direction:column; align-items:center; }
+  .wheel-native-legend{
+    align-self: flex-start;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--ink-muted);
+    margin: 6px 0 0;
+  }
+  .wheel-native-legend .star-mark{ font-size: 13px; }
+  .wheel-stage{
+    position: relative;
+    width: min(1050px, 100%, calc(100vh - 190px));
+    aspect-ratio: 1 / 1;
+    margin: 0 auto;
+  }
+  .wheel-stage svg{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+
+  /* top/bottom MUST equal 12.5%/62.5% - that's the ring stack's own
+     top-edge span in the SVG (viewBox 800, CY=400, R_OUTER=300,
+     R_INNER=100 -> (400-300)/800=12.5% to (400-100)/800=37.5%, i.e.
+     bottom=100-37.5=62.5%). Changing these breaks the row-to-ring
+     alignment done via ringCenterTopPercent() - do not "tidy" this. */
+  .wheel-legend{ position: absolute; right: 51%; top: 12.5%; bottom: 62.5%; max-width: 44%; }
+  .legend-search-wrap{ position: absolute; top: 1.5%; right: 51%; width: 44%; }
+  .legend-search-input{
+    width: 100%;
+    font-family: inherit; font-size: 12px; text-align: right;
+    color: var(--ink); background: transparent;
+    border: none; border-bottom: 1px solid var(--line);
+    padding: 3px 0 5px;
+  }
+  .legend-search-input::placeholder{ color: var(--ink-muted); }
+  .legend-search-input:focus{ outline: none; border-bottom-color: var(--accent); }
+  .legend-search-results{
+    position: absolute; top: 100%; right: 0; z-index: 5;
+    min-width: 230px; max-width: 280px; margin-top: 4px;
+    background: var(--surface); border: 1px solid var(--line-strong);
+    border-radius: 10px; box-shadow: 0 4px 14px var(--shadow); padding: 4px;
+    max-height: 320px; overflow-y: auto;
+  }
+  .legend-search-result{
+    display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+    width: 100%; text-align: left;
+    font-family: inherit; font-size: 12px; color: var(--ink);
+    background: none; border: none; border-radius: 6px;
+    padding: 7px 8px; cursor: pointer;
+  }
+  .legend-search-result:hover, .legend-search-result:focus-visible{ background: var(--surface-2); }
+  .legend-search-result.is-disabled{ opacity: 0.45; cursor: default; }
+  .r-name{ font-style: italic; font-family: "Lora", Georgia, serif; font-weight: 500; font-size: 12.5px; }
+  .r-fam{ color: var(--ink-muted); font-size: 10.5px; white-space: nowrap; flex-shrink: 0; }
+  .legend-search-empty{ font-size: 12px; color: var(--ink-muted); padding: 6px 8px; }
+
+  .wheel-legend-row{
+    position: absolute; right: 0; transform: translateY(-50%);
+    display:flex; align-items:center; gap: 6px;
+    padding: 0 3px; border-radius: 5px;
+    white-space: nowrap; cursor: pointer;
+  }
+  .wheel-legend-row:hover{ background: var(--surface-2); }
+  .wheel-legend-row.is-active{ outline: 1.5px solid var(--ink); outline-offset: 1px; background: var(--surface); }
+  .wheel-legend-row.is-jump-flash{ animation: legend-jump-flash 0.6s ease-in-out 2; }
+  @keyframes legend-jump-flash{ 0%,100%{ outline-color: var(--ink); } 50%{ outline-color: transparent; } }
+  .ring-group.is-jump-flash{ animation: ring-jump-flash 0.6s ease-in-out 2; }
+  @keyframes ring-jump-flash{ 0%,100%{ opacity: 1; } 50%{ opacity: 0.35; } }
+  .wheel-legend-star{ width: 12px; flex: none; text-align: center; line-height: 1; }
+  .wheel-legend-dots{ display:flex; flex: none; }
+  .wheel-legend-dot{ width: 8px; height:8px; border-radius: 2px; margin-left: -1px; }
+  .wheel-legend-dot:first-child{ margin-left: 0; }
+  .wheel-legend-name{
+    font-family: "Lora", Georgia, serif; font-style: italic; font-weight: 500; font-size: 12px;
+    line-height: 1; white-space: nowrap; text-align: right; color: var(--ink);
+  }
+  .wheel-legend-remove{
+    border: none; background: none; color: var(--ink-muted); font-size: 13px;
+    line-height: 1; cursor: pointer; padding: 0 1px; flex: none;
+  }
+  .wheel-legend-remove:hover{ color: var(--c-red_brown); }
+
+  .month-seg{ cursor: pointer; outline: none; }
+  .month-tick{ font-family: "IBM Plex Mono", monospace; font-size: 13.5px; font-weight: 500; fill: var(--ink-muted); }
+  .month-tick.is-clickable{ cursor: pointer; outline: none; }
+  .month-tick.is-selected{ fill: var(--ink); font-weight: 700; }
+  .season-label{
+    font-family: "Public Sans", sans-serif; font-size: 12.5px; font-weight: 700;
+    letter-spacing: 0.13em; fill: var(--ink-muted);
+  }
+  .center-month-count{ font-family: "IBM Plex Mono", monospace; letter-spacing: 0.1em; fill: var(--accent); }
+  .center-line1{
+    font-family: "IBM Plex Mono", monospace; font-weight: 600; letter-spacing: 0.12em; fill: var(--ink);
+    transition: fill 0.2s ease;
+  }
+  .center-hint{ font-family: "Public Sans", sans-serif; font-size: 11px; fill: var(--ink-muted); }
+  /* lets clicks fall through the wordmark text to the circle button beneath it */
+  #centerContent{ pointer-events: none; }
+  .center-clickable{
+    cursor: pointer;
+    transition: stroke 0.2s ease, stroke-width 0.2s ease, filter 0.2s ease;
+  }
+  .center-clickable:focus{ outline: none; }
+  .center-clickable:hover{ stroke: var(--accent); stroke-width: 2; }
+  .center-clickable:focus-visible{
+    outline: none;
+    stroke: var(--accent);
+    stroke-width: 2.5;
+    filter: drop-shadow(0 0 3px var(--accent));
+  }
+  .center-clickable:hover ~ #centerContent .center-line1,
+  .center-clickable:focus-visible ~ #centerContent .center-line1{
+    fill: var(--accent);
+  }
+
+  .colour-key{ display:flex; flex-wrap:wrap; gap: 6px 16px; justify-content:center; margin-top: 8px; }
+  .colour-key-item{ display:flex; align-items:center; gap:6px; font-size: 11.5px; color: var(--ink-muted); }
+  .colour-key-dot{ width:10px; height:10px; border-radius:50%; border:1px solid rgba(0,0,0,0.15); flex:none; }
+
+  /* ---- detail card modal ---- */
+  #cardOverlay{
+    position: fixed; inset:0; background: rgba(20,22,15,0.45);
+    display:flex; align-items:center; justify-content:center; z-index: 50; padding: 20px;
+  }
+  #cardOverlay[hidden]{ display:none; }
+  #cardBox{
+    background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+    max-width: 440px; width:100%; padding: 22px 24px;
+    box-shadow: 0 20px 60px var(--shadow); max-height: 84vh; overflow-y:auto;
+  }
+  #cardBox h2{
+    font-family: "Source Serif 4", Georgia, serif; font-style: italic; font-weight: 600;
+    margin: 0 0 2px; font-size: 20px; color: var(--ink);
+  }
+  #cardGenusFam{ color: var(--ink-muted); font-size: 13px; margin-bottom: 12px; }
+  .card-row{ display:flex; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13px; }
+  .card-row:first-of-type{ border-top: none; }
+  .card-row .k{
+    width: 150px; flex-shrink:0; color: var(--ink-muted);
+    font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; padding-top: 1px;
+  }
+  .card-row .v{ flex:1; word-break: break-word; color: var(--ink); }
+  .card-row .v a{ color: var(--accent); }
+  .colour-strip{
+    display: flex; height: 20px; width: 100%; border-radius: 6px; overflow: hidden;
+    border: 1px solid var(--line-strong);
+  }
+  .colour-strip span{ flex: 1; }
+  .colour-strip-labels{ font-size: 11.5px; color: var(--ink-muted); margin-top: 5px; }
+  #cardClose{
+    margin-top: 16px; border:1px solid var(--line-strong); background: transparent; color: var(--ink-2);
+    border-radius: 10px; padding: 8px 16px; cursor:pointer; font-size:12.5px; font-weight: 600; font-family: inherit;
+  }
+  #cardClose:hover{ border-color: var(--accent); color: var(--accent); }
+
+  /* ---- paint mode ---- */
+  .paint-ring-visual{ transition: opacity .45s ease; }
+  .paint-ring{ cursor: pointer; outline: none; }
+  .paint-ring.is-selected{ stroke: var(--accent); stroke-width: 2.5; }
+  .paint-ring-visual.is-revealed{ opacity: 1 !important; }
+  .paint-ring-visual.is-pending-reveal{ opacity: .14; }
+  .paint-ring-seg{ cursor: pointer; outline: none; }
+  .paint-ring-seg.is-selected{ stroke: var(--accent); stroke-width: 1; }
+  .paint-play-btn{ cursor: pointer; }
+  .paint-play-btn[aria-disabled="true"]{ cursor: default; }
+  .paint-random-label{ cursor: pointer; }
+  .paint-random-label:hover{ fill: var(--accent); text-decoration: underline; }
+  .flower-icon-petal, .flower-icon-center{ fill: var(--surface); stroke: var(--ink-muted); stroke-width: 1.4; }
+  .paint-play-btn:hover .flower-icon-petal, .paint-play-btn:hover .flower-icon-center{ stroke: var(--accent); }
+  .paint-play-icon.is-spinning{ animation: paint-spin 1.6s linear infinite; transform-box: fill-box; transform-origin: center; }
+  @keyframes paint-spin{ to{ transform: rotate(360deg); } }
+  .paint-play-label{
+    font-family: "Public Sans", sans-serif; font-size: 10px; font-weight: 600;
+    letter-spacing: 0.1em; fill: var(--ink-muted);
+  }
+
+  .paint-body{
+    display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; justify-content: center; width: 100%;
+  }
+  .paint-palette-panel{ flex: 1 1 200px; max-width: 230px; position: sticky; top: 16px; }
+  .paint-body .wheel-stage{ flex: 1 1 380px; max-width: min(950px, calc(100vh - 210px)); aspect-ratio: 1 / 1; }
+  .paint-palette-label{
+    font-size: 11px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase;
+    color: var(--ink-muted); text-align: center; margin: 2px 0 8px;
+  }
+  .paint-palette{
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; width: 100%;
+    padding: 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px;
+  }
+  @media (max-width: 720px){
+    .paint-palette-panel{ position: static; max-width: 560px; flex-basis: 100%; }
+    .paint-palette{ grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); }
+    /* Below this width the wheel itself gets too small for the radial
+       legend's percentage-based row spacing to stay readable, so the
+       legend (and the svg it overlays) switch from an absolute overlay
+       to a normal stacked block instead - wheel, then plant list, then
+       search - none of them competing for the same space. */
+    .wheel-stage, .paint-body .wheel-stage{ width: 100%; max-width: none; aspect-ratio: auto; }
+    .wheel-stage svg{ position: static; width: 100%; height: auto; aspect-ratio: 1 / 1; display: block; }
+    .wheel-legend, .legend-search-wrap{ position: static; max-width: none; width: 100%; margin-bottom: 8px; }
+    .wheel-legend-row{ position: static; transform:none; justify-content: space-between; }
+  }
+  .paint-swatch{
+    display:flex; align-items:center; gap: 6px; width: 100%;
+    font-family: inherit; font-size: 12px; color: var(--ink-2);
+    background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px;
+    padding: 6px 10px 6px 6px; cursor: pointer;
+  }
+  .paint-swatch:hover{ border-color: var(--ink-muted); }
+  .paint-swatch:focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; }
+  .paint-swatch.is-active{ border-color: var(--accent); background: var(--surface-2); color: var(--ink); }
+  .paint-swatch.is-active .paint-swatch-dot{ box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--accent); }
+  .paint-swatch-dot{ width:16px; height:16px; border-radius:50%; flex:none; }
+
+  .paint-actions{ display:flex; align-items:center; justify-content: center; gap: 12px; padding-top: 14px; }
+  .paint-hint{ text-align:center; font-size: 12px; color: var(--ink-muted); margin: 10px 0 0; }
+  .paint-eyebrow{ font-size: 11px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-muted); margin: 0 0 8px; text-align: center; width: 100%; }
+
+  .btn-primary{
+    font-family: inherit; font-size: 12.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+    background: var(--ink); color: var(--paper); border: none; border-radius: 10px; padding: 10px 22px; cursor: pointer;
+  }
+  .btn-primary:hover{ opacity: .88; }
+  .btn-primary:disabled{ opacity: .35; cursor: default; }
+  .btn-primary:focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; }
+  .btn-secondary{
+    font-family: inherit; font-size: 12.5px; font-weight: 600; background: transparent; color: var(--ink-2);
+    border: 1px solid var(--line-strong); border-radius: 10px; padding: 10px 18px; cursor: pointer;
+  }
+
+  .site-footer{
+    text-align: center; font-size: 11px; line-height: 1.4; color: var(--ink-muted);
+    padding-top: 6px; border-top: 1px solid var(--line);
+  }
+  .site-footer a{ color: var(--ink-muted); }
+
+  #loadError{ color: var(--c-red_brown); font-size: 13px; padding: 20px; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="title-block">
+      <h1>Bloom Atlas</h1>
+      <p class="stats"><strong>3614</strong> plants &middot; <strong>153</strong> families</p>
+      <p class="lede">Search and compare up to 10 plants &mdash; or paint your own atlas &mdash; to see what's flowering, when, and in what colour.</p>
+  <p class="note">Flowering months based on NSW records, timing may shift in other states.</p>
+    </div>
+  </header>
+
+  <div class="app-mode-switcher" id="appModeToggle" role="group" aria-label="Section">
+    <button type="button" data-mode="search" aria-pressed="true">Search</button>
+    <button type="button" data-mode="paint" aria-pressed="false">Paint</button>
+  </div>
+
+  <div id="searchMode">
+    <div class="card wheel-card">
+      <div class="wheel-stage" id="wheelStage">
+        <svg id="wheelSvg" viewBox="0 0 800 800" role="img" aria-label="Bloom wheel showing which months each selected species flowers and its flower colour"></svg>
+        <div class="wheel-legend" id="wheelLegend"></div>
+        <div class="legend-search-wrap">
+          <input type="text" id="legendSearch" class="legend-search-input" placeholder="Search a plant to add&hellip;" autocomplete="off">
+          <div class="legend-search-results" id="legendSearchResults" hidden></div>
+        </div>
+      </div>
+      <div class="wheel-native-legend"><span class="star-mark">&#9733;</span> Native to Australia</div>
+      <div class="colour-key" id="colourKey"></div>
+    </div>
+  </div>
+
+  <div id="paintMode" hidden>
+    <div class="card wheel-card">
+      <div class="paint-eyebrow">Choose months, pick colours. Click the centre to find matches</div>
+      <div class="paint-body">
+        <div class="paint-palette-panel">
+          <div class="paint-palette-label">Flower colours</div>
+          <div class="paint-palette" id="paintPalette"></div>
+        </div>
+        <div class="wheel-stage">
+          <svg id="paintSvg" viewBox="0 0 800 800" role="img" aria-label="Blank bloom wheel for painting your own colour and timing scheme"></svg>
+          <div class="wheel-legend" id="paintLegend"></div>
+        </div>
+      </div>
+      <div class="paint-actions">
+        <button type="button" class="btn-secondary" id="paintClearBtn">Clear all</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="site-footer">
+    <p> Data derived from AusTraits (Falster, Gallagher et al (2021) AusTraits, a curated plant trait database for the Australian flora. Scientific Data 8: 254,
+    <a href="https://doi.org/10.1038/s41597-021-01006-6" target="_blank" rel="noopener">https://doi.org/10.1038/s41597-021-01006-6) </a> </p>
+    <p> Disclaimer: Provided as is, for general interest only. Bloom Atlas is a personal project, not affiliated with or endorsed by AusTraits or its contributing institutions. 
+      About this project → <a href="https://larabekmez.com/bloomatlas" target="_blank" rel="noopener">https://larabekmez.com/bloomatlas </a> </p>
+    
+  </div>
+</div>
+
+<div id="cardOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="cardName">
+  <div id="cardBox">
+    <h2 id="cardName"></h2>
+    <div id="cardGenusFam"></div>
+    <div id="cardRows"></div>
+    <button type="button" id="cardClose">Close</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  var MAX_SPECIES = 10;
+  // Populated from the actual data once it loads (see computeAvailableColours)
+  // rather than hardcoded, so the palette never offers a colour with zero
+  // possible matches (or silently omits one that's actually there).
+  var COLOUR_KEYS = [];
+  var COLOUR_LABEL = {
+    black: "Black", blue_purple: "Blue / purple", green: "Green", grey: "Grey",
+    pink: "Pink", red_brown: "Red / brown", white_cream: "White / cream", yellow_orange: "Yellow / orange"
+  };
+  function colourLabel(key){
+    if (COLOUR_LABEL[key]) return COLOUR_LABEL[key];
+    // fallback for any category the data has that isn't in the known list above -
+    // turns "some_new_colour" into "Some new colour" instead of showing nothing
+    return key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, " ");
+  }
+  function computeAvailableColours(){
+    var seen = {};
+    DATA.species.forEach(function(sp){
+      (sp.flower_colours || []).forEach(function(c){ seen[c] = true; });
+    });
+    return Object.keys(seen).sort();
+  }
+
+  var DATA = null;          // { species: [...] }
+  var BY_NAME = {};
+  var selected = [];        // latin_name[], in add order (Search mode)
+
+  var svgNS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs){
+    var e = document.createElementNS(svgNS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, function(c){
+      return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c];
+    });
+  }
+  function isNative(sp){ return (sp.establishment || "").toLowerCase().indexOf("native") !== -1; }
+  function colourHex(key){
+    var safe = String(key || "grey").replace(/[^a-z0-9_]/gi, "");
+    return "var(--c-" + (safe || "grey") + ", #999)";
+  }
+
+  function polar(cx, cy, r, angleDeg){
+    var a = angleDeg * Math.PI / 180;
+    return { x: cx + r * Math.sin(a), y: cy - r * Math.cos(a) };
+  }
+  function wedgePath(cx, cy, rInner, rOuter, a0, a1){
+    var p1 = polar(cx, cy, rOuter, a0);
+    var p2 = polar(cx, cy, rOuter, a1);
+    var p3 = polar(cx, cy, rInner, a1);
+    var p4 = polar(cx, cy, rInner, a0);
+    var large = (a1 - a0) > 180 ? 1 : 0;
+    return "M " + p1.x.toFixed(2) + " " + p1.y.toFixed(2) +
+      " A " + rOuter + " " + rOuter + " 0 " + large + " 1 " + p2.x.toFixed(2) + " " + p2.y.toFixed(2) +
+      " L " + p3.x.toFixed(2) + " " + p3.y.toFixed(2) +
+      " A " + rInner + " " + rInner + " 0 " + large + " 0 " + p4.x.toFixed(2) + " " + p4.y.toFixed(2) + " Z";
+  }
+
+  var MONTH_ORDER = [3,4,5,6,7,8,9,10,11,12,1,2];
+  var STEP = 22.5;
+  var SEASONS = [
+    { name: "AUTUMN", mid: 1 * STEP + STEP / 2,  anchor: "start" },
+    { name: "WINTER", mid: 4 * STEP + STEP / 2,  anchor: "middle" },
+    { name: "SPRING", mid: 7 * STEP + STEP / 2,  anchor: "middle" },
+    { name: "SUMMER", mid: 10 * STEP + STEP / 2, anchor: "end" }
+  ];
+  var SEASON_BOUNDARIES = [0, 3 * STEP, 6 * STEP, 9 * STEP, 12 * STEP];
+  var CX = 400, CY = 400, R_CENTER = 84, R_INNER = 100, R_OUTER = 300, R_LABEL = 376, R_TICK = 320;
+
+  function ringCenterTopPercent(idx, n){
+    var pitch = (R_OUTER - R_INNER) / n;
+    var centerR = R_INNER + (idx + 0.5) * pitch;
+    var f = (R_OUTER - centerR) / (R_OUTER - R_INNER);
+    return (f * 100).toFixed(3) + "%";
+  }
+
+  function drawSeasonChrome(svg, onCenterClick){
+    var divGroup = el("g", {});
+    SEASON_BOUNDARIES.forEach(function(angle){
+      var p1 = polar(CX, CY, R_INNER - 6, angle);
+      var p2 = polar(CX, CY, R_OUTER + 6, angle);
+      divGroup.appendChild(el("line", {
+        x1: p1.x.toFixed(2), y1: p1.y.toFixed(2), x2: p2.x.toFixed(2), y2: p2.y.toFixed(2),
+        stroke: "var(--season-line)", "stroke-width": "2", "stroke-dasharray": "6 5",
+        "stroke-linecap": "round", opacity: "0.75"
+      }));
+    });
+    svg.appendChild(divGroup);
+    SEASONS.forEach(function(season){
+      var p = polar(CX, CY, R_LABEL, season.mid);
+      var text = el("text", {
+        class: "season-label", x: p.x.toFixed(2), y: p.y.toFixed(2),
+        "text-anchor": season.anchor, "dominant-baseline": "middle"
+      });
+      text.textContent = season.name;
+      svg.appendChild(text);
+    });
+    var centerCircle = el("circle", {
+      cx: CX, cy: CY, r: R_CENTER - 2, fill: "var(--surface)", stroke: "var(--line)", "stroke-width": "1"
+    });
+    if (onCenterClick){
+      var centerLabel = "Shuffle in 10 random plants";
+      centerCircle.setAttribute("class", "center-clickable");
+      centerCircle.setAttribute("role", "button");
+      centerCircle.setAttribute("tabindex", "0");
+      centerCircle.setAttribute("aria-label", centerLabel);
+      centerCircle.setAttribute("title", centerLabel);
+      var centerTitle = el("title", {});
+      centerTitle.textContent = centerLabel;
+      centerCircle.appendChild(centerTitle);
+      centerCircle.addEventListener("click", onCenterClick);
+      centerCircle.addEventListener("keydown", function(e){
+        if (e.key === "Enter" || e.key === " "){ e.preventDefault(); onCenterClick(); }
+      });
+    }
+    svg.appendChild(centerCircle);
+  }
+
+  // =================================================================
+  // SEARCH MODE
+  // =================================================================
+  var monthOnly = null;
+
+  function renderWheel(){
+    var svg = document.getElementById("wheelSvg");
+    svg.innerHTML = "";
+
+    var tickGroup = el("g", {});
+    MONTH_ORDER.forEach(function(monthNum, i){
+      var mid = i * STEP + STEP / 2;
+      var p = polar(CX, CY, R_TICK, mid);
+      var t = el("text", {
+        x: p.x.toFixed(2), y: p.y.toFixed(2),
+        class: "month-tick is-clickable" + (monthOnly === monthNum ? " is-selected" : ""),
+        "text-anchor": "middle", "dominant-baseline": "middle",
+        tabindex: "0", role: "button",
+        "aria-label": "Show how many selected plants flower in " + MONTH_ABBR[monthNum - 1]
+      });
+      t.textContent = MONTH_ABBR[monthNum - 1];
+      t.addEventListener("click", function(e){ e.stopPropagation(); toggleMonthOnly(monthNum); });
+      t.addEventListener("keydown", function(e){
+        if (e.key === "Enter" || e.key === " "){ e.preventDefault(); e.stopPropagation(); toggleMonthOnly(monthNum); }
+      });
+      tickGroup.appendChild(t);
+    });
+    svg.appendChild(tickGroup);
+
+    var n = selected.length;
+    if (n > 0){
+      var pitch = (R_OUTER - R_INNER) / n;
+      selected.forEach(function(name, idx){
+        var sp = BY_NAME[name];
+        var rInner = R_INNER + idx * pitch + 1.2;
+        var rOuter = R_INNER + (idx + 1) * pitch - 1.2;
+        var ringGroup = el("g", { class: "ring-group", "data-idx": idx });
+
+        MONTH_ORDER.forEach(function(m, i){
+          var a0 = i * STEP + 1.1;
+          var a1 = (i + 1) * STEP - 1.1;
+          var blooms = (sp.flowering_months || []).indexOf(MONTH_ABBR[m - 1]) !== -1;
+          var dim = monthOnly !== null && monthOnly !== m;
+
+          if (!blooms){
+            ringGroup.appendChild(el("path", {
+              d: wedgePath(CX, CY, rInner, rOuter, a0, a1),
+              fill: "var(--ring-empty)", opacity: dim ? "0.35" : "1", class: "month-seg"
+            }));
+            return;
+          }
+          var colours = (sp.flower_colours && sp.flower_colours.length) ? sp.flower_colours : ["grey"];
+          var bandH = (rOuter - rInner) / colours.length;
+          colours.forEach(function(c, ci){
+            var bIn = rInner + ci * bandH, bOut = rInner + (ci + 1) * bandH;
+            var band = el("path", {
+              d: wedgePath(CX, CY, bIn, bOut, a0, a1),
+              fill: colourHex(c), opacity: dim ? "0.25" : "1", class: "month-seg"
+            });
+            band.addEventListener("click", function(e){ e.stopPropagation(); openCard(name); });
+            ringGroup.appendChild(band);
+          });
+        });
+        svg.appendChild(ringGroup);
+      });
+    }
+
+    drawSeasonChrome(svg, handleReroll);
+    renderCenter();
+  }
+
+  function toggleMonthOnly(monthNum){
+    monthOnly = monthOnly === monthNum ? null : monthNum;
+    renderWheel();
+  }
+
+  function renderCenter(){
+    var svg = document.getElementById("wheelSvg");
+    var old = svg.querySelector("#centerContent");
+    if (old) old.remove();
+    var g = el("g", { id: "centerContent" });
+
+    if (monthOnly !== null){
+      var count = selected.filter(function(name){
+        return (BY_NAME[name].flowering_months || []).indexOf(MONTH_ABBR[monthOnly - 1]) !== -1;
+      }).length;
+      var m1 = el("text", { x: CX, y: CY - 8, class: "center-line1", "text-anchor": "middle", "font-size": "20" });
+      m1.textContent = MONTH_ABBR[monthOnly - 1].toUpperCase();
+      var m2 = el("text", { x: CX, y: CY + 15, class: "center-month-count", "text-anchor": "middle", "font-size": "11" });
+      m2.textContent = count + (count === 1 ? " PLANT FLOWERING" : " PLANTS FLOWERING");
+      g.appendChild(m1); g.appendChild(m2);
+    } else if (selected.length === 0){
+      var h1 = el("text", { x: CX, y: CY - 6, class: "center-line1", "text-anchor": "middle", "font-size": "16" });
+      h1.textContent = "BLOOM ATLAS";
+      var h2 = el("text", { x: CX, y: CY + 16, class: "center-hint", "text-anchor": "middle", "font-size": "11" });
+      h2.textContent = "search to begin";
+      g.appendChild(h1); g.appendChild(h2);
+    } else {
+      var v = el("text", { x: CX, y: CY - 6, class: "center-line1", "text-anchor": "middle", "font-size": "18" });
+      v.textContent = "BLOOM";
+      var l = el("text", { x: CX, y: CY + 16, class: "center-line1", "text-anchor": "middle", "font-size": "18" });
+      l.textContent = "ATLAS";
+      g.appendChild(v); g.appendChild(l);
+    }
+    svg.appendChild(g);
+  }
+
+  function renderWheelLegend(){
+    var box = document.getElementById("wheelLegend");
+    box.innerHTML = "";
+    var n = selected.length;
+    selected.forEach(function(name, idx){
+      var sp = BY_NAME[name];
+      var row = document.createElement("div");
+      row.className = "wheel-legend-row";
+      row.style.top = ringCenterTopPercent(idx, n);
+      row.dataset.idx = idx;
+
+      var star = document.createElement("span");
+      star.className = "wheel-legend-star star-mark";
+      star.innerHTML = isNative(sp) ? "&#9733;" : "";
+
+      var dots = document.createElement("span");
+      dots.className = "wheel-legend-dots";
+      (sp.flower_colours.length ? sp.flower_colours : ["grey"]).forEach(function(c){
+        var d = document.createElement("span");
+        d.className = "wheel-legend-dot";
+        d.style.background = colourHex(c);
+        dots.appendChild(d);
+      });
+
+      var nameEl = document.createElement("span");
+      nameEl.className = "wheel-legend-name";
+      nameEl.textContent = sp.latin_name;
+
+      var removeBtn = document.createElement("button");
+      removeBtn.className = "wheel-legend-remove";
+      removeBtn.title = "Remove from wheel";
+      removeBtn.textContent = "×";
+      removeBtn.addEventListener("click", function(e){ e.stopPropagation(); removeSpecies(name); });
+
+      row.appendChild(star); row.appendChild(dots); row.appendChild(nameEl); row.appendChild(removeBtn);
+      box.appendChild(row);
+
+      row.addEventListener("click", function(e){ if (e.target !== removeBtn) openCard(name); });
+    });
+  }
+
+  function addSpecies(name){
+    if (selected.indexOf(name) !== -1) return;
+    if (selected.length >= MAX_SPECIES){
+      alert("You can compare up to " + MAX_SPECIES + " species at once. Remove one before adding another.");
+      return;
+    }
+    selected.push(name);
+    renderWheelLegend();
+    renderWheel();
+  }
+  function removeSpecies(name){
+    selected = selected.filter(function(n){ return n !== name; });
+    renderWheelLegend();
+    renderWheel();
+  }
+
+  function normalize(str){ return str.toLowerCase().trim(); }
+  var legendSearch = document.getElementById("legendSearch");
+  var legendSearchResults = document.getElementById("legendSearchResults");
+  var wheelLegendEl = document.getElementById("wheelLegend");
+
+  function renderSearchResults(query){
+    var q = normalize(query);
+    legendSearchResults.innerHTML = "";
+    if (!q){ legendSearchResults.hidden = true; wheelLegendEl.hidden = false; return; }
+
+    var matches = DATA.species.filter(function(sp){
+      return (sp.latin_name + " " + (sp.genus || "") + " " + (sp.family || "")).toLowerCase().indexOf(q) !== -1;
+    }).slice(0, 8);
+
+    if (!matches.length){
+      var empty = document.createElement("div");
+      empty.className = "legend-search-empty";
+      empty.textContent = "No plant matches “" + query + "”.";
+      legendSearchResults.appendChild(empty);
+    } else {
+      matches.forEach(function(sp){
+        var already = selected.indexOf(sp.latin_name) !== -1;
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "legend-search-result" + (already ? " is-disabled" : "");
+        btn.innerHTML =
+          '<span class="r-name">' + escapeHtml(sp.latin_name) + (isNative(sp) ? ' <span class="star-mark">&#9733;</span>' : "") + "</span>" +
+          '<span class="r-fam">' + escapeHtml(sp.family) + (already ? " • added" : "") + "</span>";
+        if (already){
+          btn.disabled = true;
+        } else {
+          btn.addEventListener("click", function(){
+            addSpecies(sp.latin_name);
+            legendSearch.value = "";
+            renderSearchResults("");
+            legendSearch.blur();
+            flashRing(sp.latin_name);
+          });
+        }
+        legendSearchResults.appendChild(btn);
+      });
+    }
+    legendSearchResults.hidden = false;
+    wheelLegendEl.hidden = true;
+  }
+
+  function flashRing(name){
+    var idx = selected.indexOf(name);
+    if (idx === -1) return;
+    var flashRow = document.querySelector('.wheel-legend-row[data-idx="' + idx + '"]');
+    var flashRingEl = document.querySelector('#wheelSvg .ring-group[data-idx="' + idx + '"]');
+    [flashRow, flashRingEl].forEach(function(node){
+      if (!node) return;
+      node.classList.add("is-jump-flash");
+      setTimeout(function(){ node.classList.remove("is-jump-flash"); }, 1300);
+    });
+  }
+
+  legendSearch.addEventListener("input", function(){ renderSearchResults(legendSearch.value); });
+  legendSearch.addEventListener("focus", function(){ if (legendSearch.value) renderSearchResults(legendSearch.value); });
+  legendSearch.addEventListener("keydown", function(e){
+    if (e.key === "Escape"){ legendSearch.value = ""; renderSearchResults(""); legendSearch.blur(); }
+  });
+  document.addEventListener("click", function(e){
+    if (!e.target.closest(".legend-search-wrap")) renderSearchResults("");
+  });
+  document.addEventListener("click", function(e){
+    if (monthOnly === null) return;
+    if (e.target.closest(".month-tick, .month-seg, .wheel-legend-row, #cardOverlay, .legend-search-wrap")) return;
+    monthOnly = null;
+    renderWheel();
+  });
+
+  function renderColourKey(){
+    var box = document.getElementById("colourKey");
+    box.innerHTML = "";
+    COLOUR_KEYS.forEach(function(key){
+      var item = document.createElement("div");
+      item.className = "colour-key-item";
+      var dot = document.createElement("span");
+      dot.className = "colour-key-dot";
+      dot.style.background = colourHex(key);
+      item.appendChild(dot);
+      item.appendChild(document.createTextNode(colourLabel(key)));
+      box.appendChild(item);
+    });
+  }
+
+  var cardOverlay = document.getElementById("cardOverlay");
+  function openCard(name){
+    var sp = BY_NAME[name];
+    if (!sp) return;
+    document.getElementById("cardName").textContent = sp.latin_name;
+    document.getElementById("cardGenusFam").textContent = sp.genus + " • " + sp.family ;
+
+    var colours = (sp.flower_colours && sp.flower_colours.length) ? sp.flower_colours : [];
+    var colourValueHtml = colours.length
+      ? '<div class="colour-strip">' + colours.map(function(c){ return '<span style="background:' + colourHex(c) + '"></span>'; }).join("") + '</div>' +
+        '<div class="colour-strip-labels">' + colours.map(function(c){ return escapeHtml(colourLabel(c)); }).join(", ") + '</div>'
+      : "—";
+    var rows = [
+      ["Establishment", escapeHtml(sp.establishment || "—")],
+      ["Taxon distribution", escapeHtml(sp.taxon_distribution || "—")],
+      ["Flowering months", escapeHtml((sp.flowering_months || []).join(", ") || "—")],
+      ["Flower colour", colourValueHtml]
+    ];
+    document.getElementById("cardRows").innerHTML = rows.map(function(r){
+      return '<div class="card-row"><div class="k">' + r[0] + '</div><div class="v">' + r[1] + "</div></div>";
+    }).join("");
+    cardOverlay.hidden = false;
+  }
+  function closeCard(){ cardOverlay.hidden = true; }
+  document.getElementById("cardClose").addEventListener("click", closeCard);
+  cardOverlay.addEventListener("click", function(e){ if (e.target === cardOverlay) closeCard(); });
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape" && !cardOverlay.hidden){ closeCard(); }
+  });
+
+  function seedRandomSelection(){
+    var pool = DATA.species.slice();
+    for (var i = pool.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
+    }
+    selected = pool.slice(0, MAX_SPECIES).map(function(sp){ return sp.latin_name; });
+  }
+
+  function handleReroll(){
+    if (!DATA) return;
+    monthOnly = null;
+    seedRandomSelection();
+    renderWheelLegend();
+    renderWheel();
+  }
+
+  // =================================================================
+  // PAINT MODE - pick any number of flower colours (+ optional bloom
+  // months) per ring, then reveal real species that match, one ring at
+  // a time.
+  // =================================================================
+  var PAINT_SIZE = 10;
+  var paintRunId = 0;
+  var paint = {
+    slots: emptyPaintArray(null),   // {colors:[...], months:[]} or null, per ring
+    selected: null,
+    phase: "painting",              // painting | running | results
+    matches: emptyPaintArray(null),
+    revealed: emptyPaintArray(false)
+  };
+  function emptyPaintArray(v){ var a = []; for (var i = 0; i < PAINT_SIZE; i++) a.push(v); return a; }
+  function slotIsPainted(slot){ return !!(slot && slot.colors && slot.colors.length); }
+
+  function renderPaintWheel(){
+    var svg = document.getElementById("paintSvg");
+    svg.innerHTML = "";
+    var pitch = (R_OUTER - R_INNER) / PAINT_SIZE;
+
+    var tickGroup = el("g", {});
+    MONTH_ORDER.forEach(function(monthNum, i){
+      var mid = i * STEP + STEP / 2;
+      var p = polar(CX, CY, R_TICK, mid);
+      var t = el("text", { x: p.x.toFixed(2), y: p.y.toFixed(2), class: "month-tick", "text-anchor": "middle", "dominant-baseline": "middle" });
+      t.textContent = MONTH_ABBR[monthNum - 1];
+      tickGroup.appendChild(t);
+    });
+    svg.appendChild(tickGroup);
+
+    for (var idx = 0; idx < PAINT_SIZE; idx++){
+      var rInner = R_INNER + idx * pitch + 1.2;
+      var rOuter = R_INNER + (idx + 1) * pitch - 1.2;
+      var slot = paint.slots[idx];
+      var match = paint.matches[idx];
+      var showMatch = !!(match && (paint.phase === "results" || paint.revealed[idx]));
+      var painted = slotIsPainted(slot);
+      var group = el("g", { class: "paint-ring-visual", "data-idx": idx });
+      var isSelected = paint.phase === "painting" && paint.selected === idx;
+
+      MONTH_ORDER.forEach(function(m, i){
+        var a0 = i * STEP + 1.1;
+        var a1 = (i + 1) * STEP - 1.1;
+        if (showMatch){
+          var blooms = (match.flowering_months || []).indexOf(MONTH_ABBR[m - 1]) !== -1;
+          if (!blooms){
+            group.appendChild(el("path", {
+              d: wedgePath(CX, CY, rInner, rOuter, a0, a1),
+              fill: "var(--ring-empty)", opacity: "1", class: "paint-ring-seg"
+            }));
+            return;
+          }
+          var colours = (match.flower_colours && match.flower_colours.length) ? match.flower_colours : ["grey"];
+          var bandH = (rOuter - rInner) / colours.length;
+          colours.forEach(function(c, ci){
+            var bIn = rInner + ci * bandH, bOut = rInner + (ci + 1) * bandH;
+            var band = el("path", {
+              d: wedgePath(CX, CY, bIn, bOut, a0, a1),
+              fill: colourHex(c), opacity: "1", class: "paint-ring-seg"
+            });
+            band.addEventListener("click", function(e){ e.stopPropagation(); openCard(match.latin_name); });
+            group.appendChild(band);
+          });
+          return;
+        }
+        var on = !!(slot && slot.months.indexOf(m) !== -1);
+        var ringColours = (slot && slot.colors && slot.colors.length) ? slot.colors : null;
+        if (on && ringColours){
+          var pBandH = (rOuter - rInner) / ringColours.length;
+          ringColours.forEach(function(c, ci){
+            var pIn = rInner + ci * pBandH, pOut = rInner + (ci + 1) * pBandH;
+            var pBand = el("path", {
+              d: wedgePath(CX, CY, pIn, pOut, a0, a1),
+              class: "paint-ring-seg" + (isSelected ? " is-selected" : ""),
+              fill: colourHex(c), opacity: "1"
+            });
+            if (paint.phase === "painting"){
+              (function(ringIdx, monthNum){
+                pBand.addEventListener("click", function(){ toggleBloomMonth(ringIdx, monthNum); });
+              })(idx, m);
+            }
+            group.appendChild(pBand);
+          });
+          return;
+        }
+        var seg = el("path", {
+          d: wedgePath(CX, CY, rInner, rOuter, a0, a1),
+          class: "paint-ring-seg" + (isSelected ? " is-selected" : ""),
+          fill: on ? "var(--line-strong)" : "var(--ring-empty)",
+          opacity: on ? "1" : "0.55"
+        });
+        if (paint.phase === "painting"){
+          (function(ringIdx, monthNum){
+            seg.addEventListener("click", function(){ toggleBloomMonth(ringIdx, monthNum); });
+          })(idx, m);
+        }
+        group.appendChild(seg);
+      });
+      if (paint.phase === "running" && painted && !paint.revealed[idx]) group.classList.add("is-pending-reveal");
+      if (paint.revealed[idx] || paint.phase === "results") group.classList.add("is-revealed");
+      svg.appendChild(group);
+    }
+
+    drawSeasonChrome(svg);
+    renderPaintCenter();
+  }
+
+  function toggleBloomMonth(idx, monthNum){
+    if (paint.phase !== "painting") return;
+    paint.selected = idx;
+    if (!paint.slots[idx]) paint.slots[idx] = { colors: [], months: [] };
+    var months = paint.slots[idx].months;
+    var pos = months.indexOf(monthNum);
+    if (pos === -1) months.push(monthNum); else months.splice(pos, 1);
+    if (!months.length && !paint.slots[idx].colors.length) paint.slots[idx] = null;
+    renderPaintWheel();
+    renderPaintLegend();
+    renderPaintPalette();
+    updatePaintActions();
+  }
+
+  // Toggles colourKey on/off in the currently selected ring's colour
+  // stack. Selecting a ring's colours does not auto-advance to the next
+  // ring, so multiple colours can be stacked onto the same wedge before
+  // moving on.
+  function togglePaintColour(colourKey){
+    if (paint.selected === null || paint.selected < 0){
+      var firstEmpty = paint.slots.findIndex(function(s){ return !slotIsPainted(s); });
+      paint.selected = firstEmpty === -1 ? 0 : firstEmpty;
+    }
+    if (!paint.slots[paint.selected]) paint.slots[paint.selected] = { colors: [], months: [] };
+    var colours = paint.slots[paint.selected].colors;
+    var pos = colours.indexOf(colourKey);
+    if (pos !== -1){
+      colours.splice(pos, 1);
+    } else {
+      colours.push(colourKey);
+    }
+    if (!colours.length && !paint.slots[paint.selected].months.length) paint.slots[paint.selected] = null;
+    renderPaintWheel();
+    renderPaintLegend();
+    renderPaintPalette();
+    updatePaintActions();
+  }
+
+  function renderPaintPalette(){
+    var box = document.getElementById("paintPalette");
+    box.innerHTML = "";
+    var activeSlot = (paint.selected !== null && paint.selected >= 0) ? paint.slots[paint.selected] : null;
+    var activeColours = (activeSlot && activeSlot.colors) || [];
+
+    COLOUR_KEYS.forEach(function(key){
+      var isActive = activeColours.indexOf(key) !== -1;
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "paint-swatch" + (isActive ? " is-active" : "");
+      btn.setAttribute("aria-pressed", String(isActive));
+      var dot = document.createElement("span");
+      dot.className = "paint-swatch-dot";
+      dot.style.background = colourHex(key);
+      btn.appendChild(dot);
+      btn.appendChild(document.createTextNode(colourLabel(key)));
+      btn.addEventListener("click", function(){ togglePaintColour(key); });
+      box.appendChild(btn);
+    });
+  }
+
+  function renderPaintLegend(){
+    var box = document.getElementById("paintLegend");
+    box.innerHTML = "";
+    for (var idx = 0; idx < PAINT_SIZE; idx++){
+      (function(idx){
+        var slot = paint.slots[idx];
+        var painted = slotIsPainted(slot);
+        var shown = paint.phase === "results" || paint.revealed[idx];
+        var match = shown ? paint.matches[idx] : null;
+
+        var row = document.createElement("div");
+        row.className = "wheel-legend-row";
+        row.style.top = ringCenterTopPercent(idx, PAINT_SIZE);
+
+        var star = document.createElement("span");
+        star.className = "wheel-legend-star star-mark";
+        star.innerHTML = (match && isNative(match)) ? "&#9733;" : "";
+
+        var dots = document.createElement("span");
+        dots.className = "wheel-legend-dots";
+        var dotColours = match ? ((match.flower_colours && match.flower_colours.length) ? match.flower_colours : ["grey"]) : (slot && slot.colors ? slot.colors : []);
+        dotColours.forEach(function(c){
+          var d = document.createElement("span");
+          d.className = "wheel-legend-dot";
+          d.style.background = colourHex(c);
+          dots.appendChild(d);
+        });
+        if (!dotColours.length){
+          var empty = document.createElement("span");
+          empty.className = "wheel-legend-dot";
+          empty.style.background = "var(--ring-empty)";
+          empty.style.border = "1px solid var(--line-strong)";
+          dots.appendChild(empty);
+        }
+
+        var label = document.createElement("span");
+        label.className = "wheel-legend-name";
+        if (match){
+          label.textContent = match.latin_name;
+        } else if (painted && slot.months.length){
+          label.textContent = slot.months.length + " month" + (slot.months.length === 1 ? "" : "s");
+        } else if (painted){
+          label.textContent = "—";
+        } else {
+          label.textContent = "";
+        }
+
+        row.appendChild(star); row.appendChild(dots); row.appendChild(label);
+        if (match){
+          row.style.cursor = "pointer";
+          row.addEventListener("click", function(){ openCard(match.latin_name); });
+        }
+        box.appendChild(row);
+      })(idx);
+    }
+  }
+
+  function buildFlowerIcon(cx, cy, scale){
+    var g = el("g", { class: "flower-icon" });
+    var petalR = 7.5 * scale, petalDist = 9.5 * scale;
+    for (var i = 0; i < 5; i++){
+      var a = i * 72 * Math.PI / 180;
+      g.appendChild(el("circle", {
+        cx: (cx + petalDist * Math.sin(a)).toFixed(2), cy: (cy - petalDist * Math.cos(a)).toFixed(2),
+        r: petalR.toFixed(2), class: "flower-icon-petal"
+      }));
+    }
+    g.appendChild(el("circle", { cx: cx, cy: cy, r: (4.5 * scale).toFixed(2), class: "flower-icon-center" }));
+    return g;
+  }
+
+  function renderPaintCenter(){
+    var svg = document.getElementById("paintSvg");
+    var old = svg.querySelector("#paintCenterContent");
+    if (old) old.remove();
+    var g = el("g", { id: "paintCenterContent" });
+
+    if (paint.phase === "results"){
+      var matched = paint.matches.filter(Boolean).length;
+      var t1 = el("text", { x: CX, y: CY - 14, class: "center-line1", "text-anchor": "middle", "font-size": "16" });
+      t1.textContent = matched + " MATCHED";
+      var t2 = el("text", { x: CX, y: CY + 6, class: "center-line1", "text-anchor": "middle", "font-size": "12" });
+      t2.textContent = "PLANTS";
+      var random = el("text", { x: CX, y: CY + 27, class: "paint-play-label paint-random-label", "text-anchor": "middle", role: "button", tabindex: "0" });
+      random.textContent = "TRY AGAIN";
+      random.addEventListener("click", shuffleMatches);
+      random.addEventListener("keydown", function(e){
+        if (e.key === "Enter" || e.key === " "){ e.preventDefault(); shuffleMatches(); }
+      });
+      g.appendChild(t1); g.appendChild(t2); g.appendChild(random);
+    } else {
+      var hasPaint = paint.slots.some(slotIsPainted);
+      var running = paint.phase === "running";
+      var btn = el("g", { class: "paint-play-btn", role: "button", tabindex: (hasPaint && !running) ? "0" : "-1", "aria-disabled": String(!hasPaint || running) });
+      var icon = buildFlowerIcon(CX, CY - 6, 1);
+      icon.classList.add("paint-play-icon");
+      icon.style.opacity = hasPaint ? "1" : "0.35";
+      if (running){ icon.classList.add("is-spinning"); }
+      var label = el("text", { x: CX, y: CY + 34, class: "paint-play-label", "text-anchor": "middle" });
+      label.textContent = running ? "GROWING…" : "GROW";
+      btn.appendChild(icon); btn.appendChild(label);
+      if (hasPaint && !running){
+        btn.style.cursor = "pointer";
+        btn.addEventListener("click", runPaint);
+        btn.addEventListener("keydown", function(e){
+          if (e.key === "Enter" || e.key === " "){ e.preventDefault(); runPaint(); }
+        });
+      }
+      g.appendChild(btn);
+    }
+    svg.appendChild(g);
+  }
+
+  function updatePaintActions(){
+    // grow is triggered from the centre flower button (renderPaintCenter);
+    // nothing else to sync here now that the separate Grow button is gone.
+  }
+
+  function jaccard(a, b){
+    if (!a.length || !b.length) return 0;
+    var setB = {}; b.forEach(function(m){ setB[m] = true; });
+    var inter = 0; a.forEach(function(m){ if (setB[m]) inter++; });
+    var union = a.length + b.length - inter;
+    return union ? inter / union : 0;
+  }
+
+  // A candidate's flower_colours must match the painted colour set
+  // exactly (same colours, no more, no fewer) - not just include one of
+  // them; if months were also marked, narrow to the best bloom-timing
+  // overlap among exact-colour candidates.
+  function colourSetKey(colours){
+    return colours.slice().sort().join("|");
+  }
+  function bestColourMatches(colours, months, avoidSp){
+    var wantKey = colourSetKey(colours);
+    var candidates = DATA.species.filter(function(sp){
+      return colourSetKey(sp.flower_colours || []) === wantKey && sp !== avoidSp;
+    });
+    if (!months || !months.length || !candidates.length) return candidates;
+    var paintedMonthNames = months.map(function(m){ return MONTH_ABBR[m - 1]; });
+    var best = -1, list = [];
+    candidates.forEach(function(sp){
+      var score = jaccard(paintedMonthNames, sp.flowering_months || []);
+      if (score > best){ best = score; list = [sp]; }
+      else if (score === best){ list.push(sp); }
+    });
+    return list.length ? list : candidates;
+  }
+
+  function computeMatches(paintedIdx, avoidCurrent){
+    paintedIdx.forEach(function(i){
+      var slot = paint.slots[i];
+      var avoidSp = avoidCurrent ? paint.matches[i] : null;
+      var list = bestColourMatches(slot.colors, slot.months, avoidSp);
+      if (!list.length) list = bestColourMatches(slot.colors, slot.months, null);
+      paint.matches[i] = list.length ? list[Math.floor(Math.random() * list.length)] : null;
+    });
+  }
+
+  function runReveal(paintedIdx){
+    var runId = ++paintRunId;
+    paint.phase = "running";
+    paint.selected = null;
+    paint.revealed = emptyPaintArray(false);
+    updatePaintActions();
+    renderPaintWheel();
+    renderPaintLegend();
+    renderPaintPalette();
+
+    var delay = 700;
+    paintedIdx.forEach(function(i, seq){
+      setTimeout(function(){
+        if (runId !== paintRunId) return;
+        paint.revealed[i] = true;
+        renderPaintWheel();
+        renderPaintLegend();
+        if (seq === paintedIdx.length - 1){
+          setTimeout(function(){
+            if (runId !== paintRunId) return;
+            paint.phase = "results";
+            renderPaintWheel();
+            renderPaintLegend();
+            renderPaintCenter();
+          }, 700);
+        }
+      }, delay);
+      delay += 340;
+    });
+  }
+
+  function runPaint(){
+    if (paint.phase !== "painting") return;
+    var paintedIdx = [];
+    paint.slots.forEach(function(slot, i){ if (slotIsPainted(slot)) paintedIdx.push(i); });
+    if (!paintedIdx.length) return;
+    computeMatches(paintedIdx, false);
+    runReveal(paintedIdx);
+  }
+  function shuffleMatches(){
+    if (paint.phase !== "results") return;
+    var paintedIdx = [];
+    paint.slots.forEach(function(slot, i){ if (slotIsPainted(slot)) paintedIdx.push(i); });
+    if (!paintedIdx.length) return;
+    computeMatches(paintedIdx, true);
+    runReveal(paintedIdx);
+  }
+
+  document.getElementById("paintClearBtn").addEventListener("click", function(){
+    paintRunId++;
+    paint = { slots: emptyPaintArray(null), selected: null, phase: "painting", matches: emptyPaintArray(null), revealed: emptyPaintArray(false) };
+    renderPaintWheel();
+    renderPaintLegend();
+    renderPaintPalette();
+    updatePaintActions();
+  });
+  // =================================================================
+  // mode switcher + load
+  // =================================================================
+  var appModeToggle = document.getElementById("appModeToggle");
+  var searchModeEl = document.getElementById("searchMode");
+  var paintModeEl = document.getElementById("paintMode");
+  appModeToggle.addEventListener("click", function(e){
+    var btn = e.target.closest("button[data-mode]");
+    if (!btn) return;
+    var mode = btn.getAttribute("data-mode");
+    appModeToggle.querySelectorAll("button").forEach(function(b){ b.setAttribute("aria-pressed", String(b === btn)); });
+    searchModeEl.hidden = mode !== "search";
+    paintModeEl.hidden = mode !== "paint";
+  });
+
+  fetch("bloomatlas.json").then(function(r){
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return r.json();
+  }).then(function(data){
+    DATA = data;
+    data.species.forEach(function(sp){ BY_NAME[sp.latin_name] = sp; });
+    COLOUR_KEYS = computeAvailableColours();
+    seedRandomSelection();
+    renderColourKey();
+    renderWheelLegend();
+    renderWheel();
+    renderPaintPalette();
+    renderPaintLegend();
+    renderPaintWheel();
+    updatePaintActions();
+  }).catch(function(err){
+    document.querySelector(".wrap").innerHTML =
+      '<p id="loadError">Could not load bloomatlas.json (' + escapeHtml(err.message) + ') </p>';
+  });
+})();
+</script>
+</body>
+</html>

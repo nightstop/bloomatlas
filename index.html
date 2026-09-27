@@ -23,6 +23,8 @@
     --accent:       #2c4a6e;
     --shadow:       rgba(28,31,26,0.08);
     --ring-empty:   #e4e2d6;
+    --card-bg:      var(--surface);
+    --card-border:  var(--line);
 
     --c-black:         #1a1a1a;
     --c-blue_purple:   #3f6fae;
@@ -36,7 +38,7 @@
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
       color-scheme: dark;
-      --paper:        #14160f;
+      --paper:        #000000;
       --surface:      #1b1d16;
       --surface-2:    #21231b;
       --ink:          #f0efe6;
@@ -48,11 +50,13 @@
       --accent:       #7fa6d1;
       --shadow:       rgba(0,0,0,0.35);
       --ring-empty:   #2a2c22;
+      --card-bg:      #000000;
+      --card-border:  rgba(255,255,255,0.3);
     }
   }
   :root[data-theme="dark"]{
     color-scheme: dark;
-    --paper:        #14160f;
+    --paper:        #000000;
     --surface:      #1b1d16;
     --surface-2:    #21231b;
     --ink:          #f0efe6;
@@ -64,6 +68,8 @@
     --accent:       #7fa6d1;
     --shadow:       rgba(0,0,0,0.35);
     --ring-empty:   #2a2c22;
+    --card-bg:      #000000;
+    --card-border:  rgba(255,255,255,0.3);
   }
 
   *{ box-sizing: border-box; }
@@ -84,6 +90,7 @@
   }
 
   header{ display:flex; flex-direction: column; width: 100%; }
+  .title-block{ text-align: center; }
   .title-block h1{
     font-family: "Source Serif 4", Georgia, serif;
     font-weight: 600;
@@ -110,8 +117,8 @@
   .app-mode-switcher button[aria-pressed="true"]{ color: var(--ink); border-bottom-color: var(--accent); }
 
   .card{
-    background: var(--surface);
-    border: 1px solid var(--line);
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
     border-radius: 18px;
     box-shadow: 0 1px 2px var(--shadow);
     padding: 8px 20px;
@@ -361,7 +368,7 @@
   <header>
     <div class="title-block">
       <h1>Bloom Atlas</h1>
-      <p class="stats"><strong>3,614</strong> plants </p>
+      <p class="stats"><strong>3,614</strong> plants · Australian Flora</p>
       <p class="lede">Search to see what's flowering, when, and in what colour — or paint your own atlas. Click a plant name for more information, or the centre to randomise the list. </p>
   <p class="note">Flowering months based on NSW records, timing may shift in other states.</p>
     </div>
@@ -1263,8 +1270,9 @@
     renderPaintWheel();
     updatePaintActions();
   }).catch(function(err){
+    console.error("Failed to load bloomatlas.json:", err.message);
     document.querySelector(".wrap").innerHTML =
-      '<p id="loadError">Could not load bloomatlas.json (' + escapeHtml(err.message) + ') </p>';
+      '<p id="loadError">Couldn\'t load plant data. Try refreshing the page.</p>';
   });
 })();
 </script>

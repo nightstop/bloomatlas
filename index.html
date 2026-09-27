@@ -724,7 +724,7 @@
     if (!q){ legendSearchResults.hidden = true; wheelLegendEl.hidden = false; return; }
 
     var matches = DATA.species.filter(function(sp){
-      return (sp.latin_name + " " + (sp.genus || "") + " " + (sp.family || "")).toLowerCase().indexOf(q) !== -1;
+      return sp.latin_name.toLowerCase().indexOf(q) === 0;
     }).slice(0, 8);
 
     if (!matches.length){

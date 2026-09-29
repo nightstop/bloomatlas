@@ -1,3 +1,5 @@
 .claude/
 *.parquet
-*.py
+.env*
+.dev.vars
+.wrangler/

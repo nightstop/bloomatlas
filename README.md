@@ -20,6 +20,8 @@ How to use: Search by Latin name, or paint the wheel to explore. Click the centr
 
 Disclaimer: Bloom Atlas is a personal project, not affiliated with or endorsed by AusTraits or its contributing institutions. Provided as is, for general interest: Not horticultural, ecological or agricultural advice.
 
+License: Code is MIT licensed (see LICENSE). The data is derived and modified from AusTraits v7.0.0 and remains under CC BY 4.0.
+
 * Brief Overview of AusTraits database (dated in this project: 12/09/2026):
 
 "AusTraits is a transformative database, containing measurements on the traits of Australia's plant taxa, standardised from hundreds of disconnected primary sources. So far, data have been assembled from > 300 distinct sources, describing > 500 plant traits and > 34,000 taxa."
